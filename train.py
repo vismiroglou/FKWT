@@ -21,12 +21,12 @@ def training_pipeline(config, logger, model, train_loader, val_loader):
     callbacks = [model_checkpoint, early_stopping]
 
     trainer = L.Trainer(devices=1, 
-                        # accelerator='gpu', 
+                        accelerator='gpu', 
                         max_epochs=config['hparams']['n_epochs'], 
                         logger=logger,
                         callbacks=callbacks,
                         log_every_n_steps=50,
-                        # strategy='ddp_find_unused_parameters_true',
+                        strategy='ddp_find_unused_parameters_true',
                         default_root_dir=config['exp']['save_dir'])
 
     trainer.fit(model, train_loader, val_loader)
