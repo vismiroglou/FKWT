@@ -141,6 +141,7 @@ class Attention(nn.Module):
 
 
 class FNetBasicFourierTransform(nn.Module):
+    # Class taken from tansformers.models.fnet.modeling_fnet
     def __init__(self, mixDim=(1, 2)):
         super().__init__()
         self._init_fourier_transform(mixDim)
@@ -204,6 +205,7 @@ class FnetEncoderCustom(nn.Module):
                     ]
                 )
             )
+        self.P_Norm = P_Norm
 
     def forward(self, x):
         """
@@ -214,11 +216,18 @@ class FnetEncoderCustom(nn.Module):
         hidden_states = []
         attentions = []
 
-        for attn, ff in self.layers:
-            x = attn(x)[0] + x
-            attentions.append(x)
-            x = ff(x) + x
-            hidden_states.append(x)
+        if isinstance(self.P_Norm, PreNorm):
+            for attn, ff in self.layers:
+                x = attn(x) + x
+                attentions.append(x)
+                x = ff(x) + x
+                hidden_states.append(x)
+        else:
+            for attn, ff in self.layers:
+                x = attn(x)
+                attentions.append(x)
+                x = ff(x)
+                hidden_states.append(x)
         return x, hidden_states, attentions
 
 
@@ -502,56 +511,3 @@ class KWTFNet(nn.Module):
             outputs = outputs + (attentions,) if output_attentions else outputs
             return outputs
         return self.mlp_head(x)
-
-
-def kwt_from_name(model_name: str):
-    """
-    Instantiates KWT model from name according to original paper (kwt-1, kwt-2, kwt-3)
-    https://arxiv.org/abs/2104.00769
-    :param model_name: name of the KWT model to instantiate
-    :return: KWT model
-    """
-    models = {
-        "kwt-1": {
-            "input_res": [40, 98],
-            "patch_res": [40, 1],
-            "num_classes": 35,
-            "mlp_dim": 256,
-            "dim": 64,
-            "heads": 1,
-            "depth": 12,
-            "dropout": 0.0,
-            "emb_dropout": 0.1,
-            "pre_norm": False,
-        },
-        "kwt-2": {
-            "input_res": [40, 98],
-            "patch_res": [40, 1],
-            "num_classes": 35,
-            "mlp_dim": 512,
-            "dim": 128,
-            "heads": 2,
-            "depth": 12,
-            "dropout": 0.0,
-            "emb_dropout": 0.1,
-            "pre_norm": False,
-        },
-        "kwt-3": {
-            "input_res": [40, 98],
-            "patch_res": [40, 1],
-            "num_classes": 35,
-            "mlp_dim": 768,
-            "dim": 192,
-            "heads": 3,
-            "depth": 12,
-            "dropout": 0.0,
-            "emb_dropout": 0.1,
-            "pre_norm": False,
-        },
-    }
-
-    assert (
-        model_name in models.keys()
-    ), f"Unsupported model_name {model_name}; must be one of {list(models.keys())}"
-
-    return KWT(**models[model_name])
