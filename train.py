@@ -26,7 +26,7 @@ def training_pipeline(config, logger, model, train_loader, val_loader):
                         logger=logger,
                         callbacks=callbacks,
                         log_every_n_steps=50,
-                        strategy='ddp_find_unused_parameters_true',
+                        #strategy='ddp_find_unused_parameters_true',
                         default_root_dir=config['exp']['save_dir'])
 
     trainer.fit(model, train_loader, val_loader)
