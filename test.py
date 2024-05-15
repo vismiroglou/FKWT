@@ -50,7 +50,7 @@ def get_data(config):
         eval_set, batch_size=config["hparams"]["batch_size"], num_workers=5
     )
 
-    print("test loader size:", len(eval_loader))
+    # print("test loader size:", len(eval_loader))
 
     classes = {
         "backward": 0,
@@ -118,13 +118,15 @@ def test_pipeline(model, test_loader, device, classes):
 
     # Calculate accuracy
     accuracy = torch.sum(predicted_labels == true_labels).item() / len(true_labels)
+    wandb.log({'Accuracy': accuracy})
 
     print("Accuracy:", accuracy)
-    print("Shape of predicted_labels:", predicted_labels.shape)
-    print("Shape of true_labels:", true_labels.shape)
+    # print("Shape of predicted_labels:", predicted_labels.shape)
+    # print("Shape of true_labels:", true_labels.shape)
 
     # Creating confusion matrix using sklearn function
     cm = confusion_matrix(true_labels, predicted_labels)
+    wandb.log({'confusion_matrix': wandb.plot.confusion_matrix(y_true=[true_label.item() for true_label in true_labels], preds=[predicted_label.item() for predicted_label in predicted_labels])})
 
     # Plotting confusion matrix
     df_cm = pd.DataFrame(
@@ -153,7 +155,7 @@ def main(args):
 
     # Print the shape of the first spectrogram in the training set
     spectrogram, _ = next(iter(test_loader))
-    print("Shape of the first spectrogram in the training set:", spectrogram.shape)
+    # print("Shape of the first spectrogram in the training set:", spectrogram.shape)
 
     # Logging setup
     if args.id:
