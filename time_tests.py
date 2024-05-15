@@ -3,7 +3,7 @@ from functools import partial
 from argparse import ArgumentParser
 import time
 from tqdm import tqdm
-from src.KWT import PreNorm, Attention, FeedForward
+from src.KWT import PreNorm, Attention, FeedForward,PostNorm
 from torch import nn
 
 class Fourier(nn.Module):
@@ -45,6 +45,7 @@ if __name__ == '__main__':
     ap.add_argument('--seq-len', type=int, help='sequence length')
     ap.add_argument('--embed-len', type=int, help='embedding length')
     ap.add_argument('--batch-size', type=int, help='Batch size')
+    ap.add_argument('--preNorm', type= bool, default=True, help='False to use PostNorm')
     args = ap.parse_args()
     seq_lens = [64, 100, 128, 256, 512, 1024]
     embed_dims = [32, 64, 128, 256, 512, 1024]
@@ -54,7 +55,7 @@ if __name__ == '__main__':
     output_embed_dims = []
     for embed_dim in tqdm(embed_dims, position=0):
         for seq_len in tqdm(seq_lens, position=1):
-            P_Norm = PreNorm
+            P_Norm = PreNorm if args.preNorm else PostNorm 
             attention = P_Norm(embed_dim, Attention(embed_dim, heads=4, dim_head=embed_dim//4, dropout=0))
             fourier = P_Norm(embed_dim, Fourier())
             mlp_attn = P_Norm(embed_dim, FeedForward(embed_dim, 4 * embed_dim, dropout=0))
