@@ -3,7 +3,7 @@ from functools import partial
 from argparse import ArgumentParser
 import time
 from tqdm import tqdm
-from src.KWT import PreNorm, Attention, FeedForward
+from src.KWT import PreNorm, PostNorm, Attention, FeedForward
 from torch import nn
 
 class Fourier(nn.Module):
@@ -24,7 +24,7 @@ def main(batch, fourier_seq, attention_seq):
     #batch = batch.to(device)
     fourier_times = []
     attention_times = []
-    for i in tqdm(range(101)):
+    for i in tqdm(range(1001)):
         start = time.time()
         outputs = fourier_seq(batch)
         end = time.time()-start
@@ -46,19 +46,22 @@ if __name__ == '__main__':
     ap.add_argument('--embed-len', type=int, help='embedding length')
     ap.add_argument('--batch-size', type=int, help='Batch size')
     args = ap.parse_args()
-    seq_lens = [64, 100, 128, 256, 512, 1024]
-    embed_dims = [32, 64, 128, 256, 512, 1024]
+    seq_lens = [64, 100, 128, 256, 512]#, 1024]
+    embed_dims = [32, 64, 128, 256, 512]#, 1024]
     fourier_times = []
     attention_times = []
     output_seq_lens = []
     output_embed_dims = []
+    num_heads = 1
+    mlp_ratio = 4
     for embed_dim in tqdm(embed_dims, position=0):
         for seq_len in tqdm(seq_lens, position=1):
-            P_Norm = PreNorm
-            attention = P_Norm(embed_dim, Attention(embed_dim, heads=4, dim_head=embed_dim//4, dropout=0))
+            #P_Norm = PreNorm
+            P_Norm = PostNorm
+            attention = P_Norm(embed_dim, Attention(embed_dim, heads=num_heads, dim_head=embed_dim//num_heads, dropout=0))
             fourier = P_Norm(embed_dim, Fourier())
-            mlp_attn = P_Norm(embed_dim, FeedForward(embed_dim, 4 * embed_dim, dropout=0))
-            mlp_fourier = P_Norm(embed_dim, FeedForward(embed_dim, 4 * embed_dim, dropout=0))
+            mlp_attn = P_Norm(embed_dim, FeedForward(embed_dim, mlp_ratio * embed_dim, dropout=0))
+            mlp_fourier = P_Norm(embed_dim, FeedForward(embed_dim, mlp_ratio * embed_dim, dropout=0))
             fourier_seq = nn.Sequential(fourier, mlp_fourier)
             attention_seq = nn.Sequential(attention, mlp_attn)
 
@@ -81,4 +84,4 @@ if __name__ == '__main__':
     df['fourier'] = fourier_times
     df['attention'] = attention_times
     print(df.head())
-    df.to_csv("./test_times.csv", index=False)
+    df.to_csv("./test_times_1heads_PostNorm.csv", index=False)
