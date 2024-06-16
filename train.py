@@ -32,7 +32,7 @@ def training_pipeline(config, logger, model, train_loader, val_loader):
     trainer.fit(model, train_loader, val_loader)
 
 
-def get_model(ckpt, config, useFNet=False):
+def get_model(ckpt, config, useFNet=False, hybridMixing=False):
 
     # Set device
     device = (
@@ -43,7 +43,9 @@ def get_model(ckpt, config, useFNet=False):
 
     if ckpt:
         print('Loading from checkpoint')
-        model = LightningKWT.load_from_checkpoint(ckpt, config=config, useFnet=useFNet)
+        model = LightningKWT.load_from_checkpoint(ckpt, config=config, useFnet=useFNet, hybridMixing=hybridMixing)
+    elif hybridMixing:
+        model = LightningKWT(config, False, True)
     elif useFNet:
         model = LightningKWT(config, True)
     else:
@@ -100,7 +102,7 @@ def main(args):
         logger = None
     
     seed_everything(config['hparams']['seed'])
-    model = get_model(args.ckpt_path, config, args.useFNet)
+    model = get_model(args.ckpt_path, config, args.useFNet, args.hybridMixing)
     train_loader, val_loader = get_dataloaders(config)
     training_pipeline(config, logger, model, train_loader, val_loader)
 
@@ -126,6 +128,7 @@ if __name__ == '__main__':
     ap.add_argument('--labels_map', type=str, help='Path to lbl_map.json')
     ap.add_argument('--ckpt_path', type=str, help='Path to model checkpoint.')
     ap.add_argument('--useFNet', type=bool, default=False)
+    ap.add_argument('--hybridMixing', type=bool, default=False)
     ap.add_argument('--id', type=str, help='Unique experiment identifier')
     ap.add_argument('--dev_mode', action='store_true', help='Flag to limit the dataset for testing purposes.')
     args = ap.parse_args()

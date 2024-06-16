@@ -2,26 +2,34 @@ from typing import Any
 
 import lightning as L
 import torch
-from src.KWT import KWT, KWTFNet
+from src.KWT import KWT, KWTFNet, HKWT
 from torch import nn, optim
 from transformers import get_cosine_schedule_with_warmup
 from torchmetrics.classification import MulticlassAccuracy
 
 
 class LightningKWT(L.LightningModule):
-    def __init__(self, config, useFnet=False):
+    def __init__(self, config, useFnet=False, hybridMixing=False):
         super().__init__()
-        self.model = (
-            KWT(**config["hparams"]["KWT"])
-            if not useFnet
-            else KWTFNet(**config["hparams"]["KWTFNet"])
-        )
+        if hybridMixing:
+            self.model = (
+                HKWT(**config["hparams"]["HKWT"])
+            )
+        else:
+            self.model = (
+                KWT(**config["hparams"]["KWT"])
+                if not useFnet
+                else KWTFNet(**config["hparams"]["KWTFNet"])
+            )
         self.config = config
-        self.num_classes= (
-            self.config['hparams']['KWT']['num_classes']
-            if not useFnet
-            else self.config['hparams']['KWTFNet']['num_classes']
-        )
+        if hybridMixing:
+            self.num_classes = self.config['hparams']['HKWT']['num_classes']
+        else:
+            self.num_classes= (
+                self.config['hparams']['KWT']['num_classes']
+                if not useFnet
+                else self.config['hparams']['KWTFNet']['num_classes']
+            )
         self.train_precision = MulticlassAccuracy(num_classes=self.num_classes) #logging multiclass accuracy
         self.val_precision = MulticlassAccuracy(num_classes=self.num_classes) #logging multiclass accuracy
         self.criterion = nn.CrossEntropyLoss()
